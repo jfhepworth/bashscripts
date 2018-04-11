@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# create_script
+# This script creates a new bash scripts, sets permissions and more
+# Author: jhepworth
+
+# Is there an argument?
+[[ ! $1 ]] && { echo "Missing agrument"; exit 1; }
+
+declare open_editor=""
+if [[ $# -eq 1 ]]; then
+	open_editor="true"
+fi
+
+declare -r bin_dir="${HOME}/bin"
+
+# Does the bin folder exist
+if [[ ! -d ${bin_dir} ]]; then
+        if mkdir ${bin_dir}; then
+                echo "Created bin folder... ${bin_dir}"
+        else
+                echo "Could not create bin folder... ${bin_dir}" >&2
+                exit 1
+        fi
+fi
+
+while [[ $1 ]]; do
+	scriptname="${1}"
+	filename="${bin_dir}/${scriptname}"
+
+	# Des the file exist
+	if [[ -e $filename ]]; then
+        	echo "File ${filename} already exists..." >&2
+        	shift
+		continue
+	fi
+
+	if type "$scriptname" 1>/dev/null 2>&1; then
+		echo "There is already a command with name ${scriptname}"
+		shift 
+		continue
+	fi
+
+	# create the file
+	date=$(date)
+
+	echo "#!/bin/bash" >> $filename
+	echo "" >> $filename
+	echo "# ${scriptname}" >> $filename
+	echo "# author: jhepworth" >> $filename
+	echo "# date: ${date}" >> $filename
+	echo "# " >> $filename
+	echo "" >> $filename
+
+	# chmod
+	if chmod u+x $filename; then
+		echo "Permissions altered..."
+	else
+		echo "Problem changing permissions.." >&2
+	fi
+
+	shift
+done
+
+# open in $EDITOR
+if [[ $open_editor ]]; then
+	echo opening
+	
+	if [[ $EDITOR ]]; then
+		echo "Opening in your favourite editor!"
+		$EDITOR "${filename}"
+	else
+		echo "Ok, no fave editor dude? \$EDITOR is empty! Np, vim it is..." >&2
+		vim "${filename}"
+	fi
+fi

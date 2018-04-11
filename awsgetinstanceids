@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# awsgetinstanceids
+# author: jhepworth
+# date: Mon Apr  2 06:45:55 UTC 2018
+#
+
+# check parameters
+[[ $# -ne 0 ]] && { echo "No parameters please... bye!" >&2; exit 1; } 
+
+# check dependancies on awscli and jq
+hasawscli=$(type aws)
+[[ ${#hasawscli} -eq 0 ]] && { echo "Aws command line application is not installed... try sudo apt-get install awscli" >&2; exit 1; }
+hasjq=$(type jq)
+[[ ${#hasjq} -eq 0 ]] && { echo "JQ is not installed...try sudo apt-get install jq" >&2; exit 1; }
+
+
+# check that aws is configured
+awsconfigfile="${HOME}/.aws/config"
+[[ ! -f ${awsconfigfile} ]] && { echo "AWS Config file does not exist...${awsconfigfile}" >&2; exit 1; }
+
+# now query for the instance ids
+instance_json=$(aws ec2 describe-instances)
+instanceids=$(echo $instance_json | jq '.Reservations[].Instances[].InstanceId' -r)
+echo $instanceids
+echo $instance_json >&2 # print the full json to the error stream (so other scripts can use it!) 
+exit 0

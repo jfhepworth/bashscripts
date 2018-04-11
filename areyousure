@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# areyousure
+# author: jhepworth
+# date: Sun Apr  1 12:48:06 UTC 2018
+# 
+
+# check no params
+[[ $# -gt 0 ]] && { echo "No parameters please..." >&2 && exit 1; }
+
+# ask for y/n
+echo "Are you sure? (y/n)" 
+
+answered=
+while [[ ! $answered ]]; do
+	read -r -n 1 -s answer
+	if [[ $answer = [Yy] ]]; then
+		answered="yes"
+	elif [[ $answer = [Nn] ]]; then
+		answered="no"
+	fi
+done
+
+printf "\n%s\n" $answered
+exit 0

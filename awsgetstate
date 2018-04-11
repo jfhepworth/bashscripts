@@ -1,0 +1,21 @@
+#!/bin/bash 
+
+# awsgetstate
+# author: jhepworth
+# date: Mon Apr  2 14:03:57 UTC 2018
+# 
+
+[[ ${#} -ne 0 ]] && { echo "No args please...." >&2; exit 1; }
+
+awsgetinstanceids_path=$(type awsgetinstanceids)
+[[ ${#awsgetinstanceids_path} -eq 0 ]] && { echo "awsgetinstanceids must be present..." >&2; exit 1; }
+
+instance_ids=$(awsgetinstanceids 2> /tmp/awsdescribeinstances.tmp)
+#echo $(aws ec2 describe-instances --instance-ids ${instance_ids} | jq '.Reservations[].Instances[].State.Name' -r)
+if [[ -f /tmp/awsdescribeinstances.tmp ]]; then
+	# use json outpout from first script for perf
+	echo $(cat /tmp/awsdescribeinstances.tmp | jq '.Reservations[].Instances[].State.Name' -r)
+else
+	echo $(aws ec2 describe-instances --instance-ids ${instance_ids} | jq '.Reservations[].Instances[].State.Name' -r)
+fi
+exit 0

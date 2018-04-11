@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# testredirection
+# author: jhepworth
+# date: Sun Apr  8 04:49:40 UTC 2018
+# 
+
+# check dependencies function
+dependency() {
+  for executable in "$@"; do
+    ! type ${executable} >/dev/null 2>&1 && 
+    printf "Dependency not installed: ${executable}\n" 1>&2 && exit 1
+  done; return 0
+}
+
+# 
+ls -l /proc/$$/fd

@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# awsupdatesshgroup
+# author: jhepworth
+# date: Fri Apr  6 15:55:28 UTC 2018
+# 
+# this script takes an optional parameter 'remove'
+# if this arg is supplied then the script exits after removing existing ssh rule
+
+# STATICS
+MY_SSH_GROUP_NAME="josh_ssh"
+
+# check that there is a global group called MY_SSH_GROUP_NAME and store the id
+my_ssh_group_json=$(aws ec2 describe-security-groups --group-names ${MY_SSH_GROUP_NAME})
+my_ssh_group_id=$(echo ${my_ssh_group_json} | jq '.SecurityGroups[].GroupId' -r)
+if [[ ${my_ssh_group_id} != sg-* ]]; then
+        echo "There must be a security group called ${MY_SSH_GROUP_NAME} in the default VPC..." >&2
+        exit 1
+fi
+
+# remove existing ssh rule TODO: This errors when there are multiple ssh rules (which there shouldn't be..)
+existing_ssh_ips=$(echo ${my_ssh_group_json} | jq '.SecurityGroups[].IpPermissions[].IpRanges[].CidrIp' -r)
+if [[ ${#existing_ssh_ips} -ne 0 ]]; then
+	echo "Removing existing ssh ip ${existing_ssh_ips}"
+	$(aws ec2 revoke-security-group-ingress --group-id ${my_ssh_group_id} --port 22 --protocol tcp --cidr ${existing_ssh_ips}) 1>&2
+fi
+
+# if param action was remove then stop now...
+[[ ${1} == "remove" ]] && { exit 0; }
+
+# update with the current ip
+ip_address=$(whatismyip)
+aws ec2 authorize-security-group-ingress --group-id ${my_ssh_group_id} --protocol tcp --port 22 --cidr ${ip_address}/24
+if [[ $? -ne 0 ]]; then 
+	echo "Error updating security group." >&2
+	exit 1
+else
+	echo "Updated security group ${my_ssh_group_id} with ip address: $(whatismyip)"
+	exit 0
+fi

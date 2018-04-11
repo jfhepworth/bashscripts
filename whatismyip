@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# whatismyip
+# author: jhepworth
+# date: Thu Apr  5 18:47:11 UTC 2018
+# 
+
+[[ ${#} -gt 0 ]] && { echo "Sorry dude, no arguments please..." >&2; exit 1; }
+
+dig_path=$(type dig)
+[[ ${#dig_path} -eq 0 ]] && { echo "Can't find dig man... " >&2; exit 1; }
+
+# lets crack on with getting that ip...
+echo $(dig +short myip.opendns.com @resolver1.opendns.com)

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# comparestrings
+# author: jhepworth
+# date: Sun Apr  1 08:24:29 UTC 2018
+# 
+
+# check we have two parameters only
+[[ $# -ne 2 ]] && { echo "Require 2 parameters exactly..." >&2; exit 1; }
+
+arg1="${1}"
+arg2="${2}"
+
+length1=${#arg1}
+length2=${#arg2}
+
+# ompare the strings and print out the result
+if [[ $length1 -gt $length2 ]]; then
+	echo "${arg1} is longest with ${length1} characters"
+elif [[ $length1 -eq $length2 ]]; then
+	echo "Both strings have $length1 characters"
+else
+	echo "${arg2} is longest with ${length2} characters"
+fi
+
+exit 0

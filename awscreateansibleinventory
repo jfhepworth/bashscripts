@@ -1,0 +1,73 @@
+#!/bin/bash 
+
+# awscreatesshconfig
+# author: jhepworth
+# date: Mon Apr  2 07:30:42 UTC 2018
+# 
+
+# no params please
+[[ ${#} -gt 0 ]] && { echo "No parameters please..." >&2; exit 1; }
+
+# check dependant scripts
+awsgetinstance_path=$(type awsgetinstanceids)
+[[ ${#awsgetinstance_path} -eq 0 ]] && { echo 'Need script awsgetinstanceids installing....' >&2; exit 1; }
+
+
+# now get the instance id array
+instanceids_string=$(awsgetinstanceids 2> /tmp/awsdescribeinstances.tmp)
+read -r -a instanceids_array <<< $instanceids_string
+
+let counter=1
+allhosts=""
+for instanceid in "${instanceids_array[@]}"
+do
+	# check if the instance is running!
+	instance_json=
+	if [[ -f /tmp/awsdescribeinstances.tmp ]]; then
+		# use json outpout from first script for perf
+		instance_json=$(cat /tmp/awsdescribeinstances.tmp | jq ".Reservations[].Instances[] | select(.InstanceId | contains(\"${instanceid}\"))" )
+	else
+		instance_json=$(aws ec2 describe-instances --instance-ids ${instanceid} | jq '.Reservations[].Instances[]')
+	fi
+	
+	running_state=$(echo $instance_json | jq '.State.Name' -r)
+	if [ ${running_state} != "running" ]; then
+		echo "Instance $instanceid is not running.... skipping" >&2
+		continue
+	fi
+
+	# great, lets create this inventory file
+	hostname=$(echo $instance_json | jq '.PublicDnsName' -r)
+	keyname=$(echo $instance_json | jq '.KeyName' -r)
+	
+	full_ssh_key="${HOME}/.ssh/${keyname}.pem"
+
+	# send missing keys to error output
+	if [[ ! -f ${full_ssh_key} ]]; then
+		echo "Missing SSH Key. ${hostname}, ${keyname}, ${full_ssh_key}" >&2
+	fi
+
+	# build the ~/.ssh/config file
+	thishostname="web${counter}"
+	echo "${thishostname} ansible_ssh_host=${hostname} ansible_ssh_private_key_file=${full_ssh_key}"
+	allhosts="${allhosts} ${thishostname}"	
+
+	# increment counter
+	counter=$(( counter + 1 ))
+done
+
+echo ""
+echo "[servers]"
+
+read -r -a servers_array <<< $allhosts
+for server in "${servers_array[@]}"
+do
+	echo "${server}"
+done
+
+echo ""
+echo "[servers:vars]"
+echo "ansible_ssh_user=ubuntu"
+
+echo ""
+exit 0

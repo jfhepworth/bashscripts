@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# awsgetinstanceids2
+# author: jhepworth
+# date: Thu Apr 12 21:07:03 UTC 2018
+# 
+# This script returns a list of instance ids
+# Arguments
+# -a "all" (default)
+# -r "running"
+# -s "stopped"
+
+# enforce one arg minimum
+[[ ${#} -eq 0 ]] && { echo "Please supply an argument: -a, -r, -s" >&2; exit 1; }
+
+declare state=""
+while getopts ":ars" opt; do
+	case $opt in
+		a)
+			state="ALL"
+			;;
+		r)
+			state="running"
+			;;
+		s)
+			state="stopped"
+			;;
+		\?)
+			echo "Invalid argument: -${OPTARG}" >&2
+			exit 1
+			;;
+	esac
+done
+
+# check dependancies on awscli and jq
+hasawscli=$(type aws)
+[[ ${#hasawscli} -eq 0 ]] && { echo "Aws command line application is not installed... try sudo apt-get install awscli" >&2; exit 1; }
+hasjq=$(type jq)
+[[ ${#hasjq} -eq 0 ]] && { echo "JQ is not installed...try sudo apt-get install jq" >&2; exit 1; }
+
+# check that aws is configured
+awsconfigfile="${HOME}/.aws/config"
+[[ ! -f ${awsconfigfile} ]] && { echo "AWS Config file does not exist...${awsconfigfile}" >&2; exit 1; }
+
+# now query for the instance ids
+instance_json=$(aws ec2 describe-instances)
+instanceids=""
+if [[ ${state} == "ALL" ]]; then
+	instanceids=$(echo $instance_json | jq '.Reservations[].Instances[].InstanceId' -r)
+else
+	instanceids=$(echo $instance_json | jq ".Reservations[].Instances[] | select(.State.Name | contains(\"${state}\"))" | jq ".InstanceId" -r)
+fi
+
+echo $instanceids
+echo $instance_json >&2 # print the full json to the error stream (so other scripts can use it!) 
+exit 0

@@ -30,7 +30,7 @@ do
 		# use json outpout from first script for perf
 		instance_json=$(cat /tmp/awsdescribeinstances.tmp | jq ".Reservations[].Instances[] | select(.InstanceId | contains(\"${instanceid}\"))" )
 	else
-		instance_json=$(aws ec2 describe-instances --instance-ids ${instanceid} | jq '.Reservations[].Instances[]')
+		instance_json=$(aws ec2 describe-instances --instance-ids ${instanceid} | jq ".Reservations[].Instances[]")
 	fi
 	
 	running_state=$(echo $instance_json | jq '.State.Name' -r)

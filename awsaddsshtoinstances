@@ -1,19 +1,14 @@
 #!/bin/bash
 
-# awsaddmysshgrouptorunninginstances
+# awsaddsshtoinstances
 # author: jhepworth
 # date: Fri Apr  6 16:15:49 UTC 2018
 # 
+[[ ${#} -ne 0 ]] && { echo "No parameters please..." >&2; exit 1; }
 
 # check dependencies function
-dependency() {
-  for executable in "$@"; do
-    ! type ${executable} >/dev/null 2>&1 && 
-    printf "Dependency not installed: ${executable}\n" 1>&2 && exit 1
-  done; return 0
-}
-
-dependency awsgetinstanceids
+awsgetinstanceids_path=$(type awsgetinstanceids)
+[[ ${#awsgetinstanceids_path} -eq 0 ]] && { echo "Need awsgetinstanceids installing..." >&2; exit 1; }
 
 # STATICS
 MY_SSH_GROUP_NAME="josh_ssh"
@@ -21,33 +16,36 @@ MY_SSH_GROUP_NAME="josh_ssh"
 # check that there is a global group called MY_SSH_GROUP_NAME and store the id
 my_ssh_group_id=$(aws ec2 describe-security-groups --group-names ${MY_SSH_GROUP_NAME} | jq '.SecurityGroups[].GroupId' -r)
 if [[ ${my_ssh_group_id} != sg-* ]]; then
-        echo "There must be a security group called ${MY_SSH_GROUP_NAME} in the default VPC..."
+        echo "There must be a security group called ${MY_SSH_GROUP_NAME} in the default VPC..." >&2
         exit 1
 fi
 
 # now get the instance id array
-instanceids_string=$(awsgetinstanceids)
+instanceids_string=$(awsgetinstanceids 2> /tmp/awsdescribeinstances.tmp)
 read -r -a instanceids_array <<< $instanceids_string
 
-let counter=1
 for instanceid in "${instanceids_array[@]}"
 do
         # check if the instance is running!
-        instance_json=$(aws ec2 describe-instances --instance-ids ${instanceid})
-        running_state=$(echo $instance_json | jq '.Reservations[].Instances[].State.Name' -r)
+	instance_json=
+	if [[ -f /tmp/awsdescribeinstances.tmp ]]; then
+		instance_json=$(cat /tmp/awsdescribeinstances.tmp | jq ".Reservations[].Instances[] | select(.InstanceId | contains(\"${instanceid}\"))" )
+	else
+ 		instance_json=$(aws ec2 describe-instances --instance-ids ${instanceid} | jq ".Reservations[].Instances[]")
+	fi
+
+        running_state=$(echo $instance_json | jq '.State.Name' -r)
         if [ ${running_state} != "running" ]; then
-                echo "Instance $instanceid is not running.... skipping" > /dev/stderr
+                echo "Instance $instanceid is not running.... skipping" >&2
 	else
         	# great, lets check for our security group (static at top)'
-        	josh_ssh_group_this_instance=$(echo $instance_json | jq ".Reservations[].Instances[].SecurityGroups[] | select(.GroupName == \"${MY_SSH_GROUP_NAME}\")")
+        	josh_ssh_group_this_instance=$(echo $instance_json | jq ".SecurityGroups[] | select(.GroupName == \"${MY_SSH_GROUP_NAME}\")")
         	if [[ ${#josh_ssh_group_this_instance} -eq 0 ]]; then
-                	echo "No group found on this instance... adding"
+                	echo "No group found on this instance ${instanceid}... adding"
 
-                	instance_id=$(echo $instance_json | jq ".Reservations[].Instances[].InstanceId" -r)
-                	existing_sec_groups=$(echo $instance_json | jq ".Reservations[].Instances[].SecurityGroups[].GroupId" -r)
+                	instance_id=$(echo $instance_json | jq ".InstanceId" -r)
+                	existing_sec_groups=$(echo $instance_json | jq ".SecurityGroups[].GroupId" -r)
                         aws ec2 modify-instance-attribute --instance-id ${instance_id} --groups ${my_ssh_group_id}  ${existing_sec_groups}
 		fi        
 	fi
-
-        counter=$(( counter + 1 ))
 done

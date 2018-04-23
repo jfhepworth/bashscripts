@@ -51,7 +51,7 @@ awsconfigfile="${HOME}/.aws/config"
 if [[ ${state} == "ALL" ]]; then
 	instance_json=$(aws ec2 describe-instances | jq ".Reservations[].Instances[]")
 else
-	instance_json=$(aws ec2 describe-instances | jq ".Reservations[].Instances[] | select(.State.Name | contains(\"${state}\"))" )
+	instance_json=$(aws ec2 describe-instances | jq ".Reservations[].Instances[] | select(.State.Name | contains(\"${state}\"))")
 fi
 
 if [[ ${friendlyprint} == "true" ]]; then

@@ -10,12 +10,13 @@
 # -a "all" (default)
 # -r "running"
 # -s "stopped"
+# -f friendlyprint (prints instance ids only)
 
 # enforce one arg minimum
 [[ ${#} -eq 0 ]] && { echo "Please supply an argument: -a, -r, -s" >&2; exit 1; }
 
 declare state=""
-while getopts ":ars" opt; do
+while getopts ":arsf" opt; do
 	case $opt in
 		a)
 			state="ALL"
@@ -25,6 +26,9 @@ while getopts ":ars" opt; do
 			;;
 		s)
 			state="stopped"
+			;;
+		f)
+			friendlyprint="true"
 			;;
 		\?)
 			echo "Invalid argument: -${OPTARG}" >&2
@@ -50,5 +54,10 @@ else
 	instance_json=$(aws ec2 describe-instances | jq ".Reservations[].Instances[] | select(.State.Name | contains(\"${state}\"))" )
 fi
 
-echo $instance_json # print the full json to the error stream (so other scripts can use it!) 
+if [[ ${friendlyprint} == "true" ]]; then
+	echo $instance_json | jq ".InstanceId" -r
+else
+	echo $instance_json
+fi
+
 exit 0

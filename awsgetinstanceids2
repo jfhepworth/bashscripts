@@ -3,8 +3,9 @@
 # awsgetinstanceids2
 # author: jhepworth
 # date: Thu Apr 12 21:07:03 UTC 2018
-# 
-# This script returns a list of instance ids
+#
+# This script returns a json string detailing the instances given a state argument
+#
 # Arguments
 # -a "all" (default)
 # -r "running"
@@ -43,14 +44,11 @@ awsconfigfile="${HOME}/.aws/config"
 [[ ! -f ${awsconfigfile} ]] && { echo "AWS Config file does not exist...${awsconfigfile}" >&2; exit 1; }
 
 # now query for the instance ids
-instance_json=$(aws ec2 describe-instances)
-instanceids=""
 if [[ ${state} == "ALL" ]]; then
-	instanceids=$(echo $instance_json | jq '.Reservations[].Instances[].InstanceId' -r)
+	instance_json=$(aws ec2 describe-instances | jq ".Reservations[].Instances[]")
 else
-	instanceids=$(echo $instance_json | jq ".Reservations[].Instances[] | select(.State.Name | contains(\"${state}\"))" | jq ".InstanceId" -r)
+	instance_json=$(aws ec2 describe-instances | jq ".Reservations[].Instances[] | select(.State.Name | contains(\"${state}\"))" )
 fi
 
-echo $instanceids
-echo $instance_json >&2 # print the full json to the error stream (so other scripts can use it!) 
+echo $instance_json # print the full json to the error stream (so other scripts can use it!) 
 exit 0

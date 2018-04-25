@@ -9,6 +9,14 @@
 
 # STATICS
 MY_SSH_GROUP_NAME="josh_ssh"
+declare action=""
+while getopts ":r" opt; do
+	case $opt in
+		r)
+			action="remove"
+			;;
+	esac	
+done
 
 # check that there is a global group called MY_SSH_GROUP_NAME and store the id
 my_ssh_group_json=$(aws ec2 describe-security-groups --group-names ${MY_SSH_GROUP_NAME})
@@ -26,7 +34,7 @@ if [[ ${#existing_ssh_ips} -ne 0 ]]; then
 fi
 
 # if param action was remove then stop now...
-[[ ${1} == "remove" ]] && { exit 0; }
+[[ ${action} == "remove" ]] && { exit 0; }
 
 # update with the current ip
 ip_address=$(whatismyip)

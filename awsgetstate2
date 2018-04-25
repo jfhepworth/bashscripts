@@ -1,0 +1,15 @@
+#!/bin/bash 
+
+# awsgetstate2
+# author: jhepworth
+# date: Mon Apr  2 14:03:57 UTC 2018
+# 
+
+[[ ${#} -ne 0 ]] && { echo "No args please...." >&2; exit 1; }
+
+awsgetinstanceids_path=$(type awsgetinstanceids2)
+[[ ${#awsgetinstanceids_path} -eq 0 ]] && { echo "awsgetinstanceids2 must be present..." >&2; exit 1; }
+
+instance_json=$(awsgetinstanceids2 -a)
+echo $instance_json | jq '.State.Name' -r
+exit 0

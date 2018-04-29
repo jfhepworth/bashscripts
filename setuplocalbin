@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# setuplocalbin
+# author: jhepworth
+# date: Sun Apr 29 13:37:06 UTC 2018
+#
+# adds the users local bin folder to the path
+#
+
+# update path to include local bin 
+localbin="${HOME}/bin"
+
+if [[ ! -d "${localbin}" ]]; then
+	echo "No bin folder, creating one..."
+	mkdir ${localbin} || $(echo "Failed creating local bin folder" >&2; exit 1;)
+fi
+
+if [[ ${PATH} = *${localbin}* ]]; then
+	echo "Local bin already in path"
+	exit 0
+else
+	echo "Local bin folder exists... adding to PATH"
+	PATH="${PATH}:${localbin}"
+	echo ${PATH}
+fi

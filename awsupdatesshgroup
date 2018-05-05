@@ -30,7 +30,7 @@ fi
 existing_ssh_ips=$(echo ${my_ssh_group_json} | jq '.SecurityGroups[].IpPermissions[].IpRanges[].CidrIp' -r)
 if [[ ${#existing_ssh_ips} -ne 0 ]]; then
 	echo "Removing existing ssh ip ${existing_ssh_ips}"
-	$(aws ec2 revoke-security-group-ingress --group-id ${my_ssh_group_id} --port 22 --protocol tcp --cidr ${existing_ssh_ips}) 1>&2
+	aws ec2 revoke-security-group-ingress --group-id ${my_ssh_group_id} --port 22 --protocol tcp --cidr ${existing_ssh_ips} > /dev/null
 fi
 
 # if param action was remove then stop now...
@@ -38,7 +38,7 @@ fi
 
 # update with the current ip
 ip_address=$(whatismyip)
-aws ec2 authorize-security-group-ingress --group-id ${my_ssh_group_id} --protocol tcp --port 22 --cidr ${ip_address}/24
+aws ec2 authorize-security-group-ingress --group-id ${my_ssh_group_id} --protocol tcp --port 22 --cidr ${ip_address}/24 > /dev/null
 if [[ $? -ne 0 ]]; then 
 	echo "Error updating security group." >&2
 	exit 1
